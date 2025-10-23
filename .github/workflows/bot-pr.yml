@@ -3,22 +3,22 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to create/update"
+        description: "Branch to create or update"
         required: true
       commit_message:
         description: "Commit message"
         required: true
       file_path:
-        description: "Path to modify (e.g., docs/hello.txt)"
+        description: "Path to modify (for example docs/hello.txt)"
         required: true
       content:
         description: "New file content (UTF-8)"
         required: true
       pr_title:
-        description: "PR title"
+        description: "Pull request title"
         required: true
       pr_body:
-        description: "PR body"
+        description: "Pull request body"
         required: false
         default: ""
 
@@ -41,7 +41,7 @@ jobs:
           git config user.name "repo-bot"
           git config user.email "bot@example.com"
 
-      - name: Create/Update file
+      - name: Create or update file
         id: update
         shell: bash
         run: |
