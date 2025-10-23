@@ -2,24 +2,12 @@ name: bot-pr
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: "Branch name to create/update"
-        required: true
-      commit_message:
-        description: "Commit message"
-        required: true
-      file_path:
-        description: "Path to modify"
-        required: true
-      content:
-        description: "New file content (UTF-8)"
-        required: true
-      pr_title:
-        description: "PR title"
-        required: true
-      pr_body:
-        description: "PR body"
-        required: false
+      branch: { description: "Branch to create/update", required: true }
+      commit_message: { description: "Commit message", required: true }
+      file_path: { description: "Path to modify", required: true }
+      content: { description: "New file content (UTF-8)", required: true }
+      pr_title: { description: "PR title", required: true }
+      pr_body: { description: "PR body", required: false }
 
 jobs:
   pr:
@@ -27,12 +15,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.BOT_TOKEN }}
+          fetch-depth: 0
 
       - name: Configure git
         run: |
@@ -42,12 +29,16 @@ jobs:
       - name: Update file
         run: |
           git checkout -B "${{ github.event.inputs.branch }}"
+          mkdir -p "$(dirname "${{ github.event.inputs.file_path }}")"
           printf "%s" "${{ github.event.inputs.content }}" > "${{ github.event.inputs.file_path }}"
+          if git diff --quiet; then
+            echo "No changes to commit"; exit 1
+          fi
           git add "${{ github.event.inputs.file_path }}"
           git commit -m "${{ github.event.inputs.commit_message }}"
           git push -u origin "${{ github.event.inputs.branch }}" --force
 
-      - name: Open PR
+      - name: Open or update PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.BOT_TOKEN }}
