@@ -1,0 +1,57 @@
+name: bot-pr
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch name to create/update"
+        required: true
+      commit_message:
+        description: "Commit message"
+        required: true
+      file_path:
+        description: "Path to modify"
+        required: true
+      content:
+        description: "New file content (UTF-8)"
+        required: true
+      pr_title:
+        description: "PR title"
+        required: true
+      pr_body:
+        description: "PR body"
+        required: false
+
+jobs:
+  pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "repo-bot"
+          git config user.email "bot@example.com"
+
+      - name: Update file
+        run: |
+          git checkout -B "${{ github.event.inputs.branch }}"
+          printf "%s" "${{ github.event.inputs.content }}" > "${{ github.event.inputs.file_path }}"
+          git add "${{ github.event.inputs.file_path }}"
+          git commit -m "${{ github.event.inputs.commit_message }}"
+          git push -u origin "${{ github.event.inputs.branch }}" --force
+
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          branch: ${{ github.event.inputs.branch }}
+          title: ${{ github.event.inputs.pr_title }}
+          body: ${{ github.event.inputs.pr_body }}
+          base: main
