@@ -19,4 +19,4 @@ on:
         required: true
       pr_body:
         description: "Pull request body"
-        require
+        require: true
