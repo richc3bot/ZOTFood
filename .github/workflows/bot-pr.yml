@@ -1,22 +1,7 @@
-name: bot-pr
-on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: "Branch to create or update"
-        required: true
-      commit_message:
-        description: "Commit message"
-        required: true
-      file_path:
-        description: "Path to modify (for example docs/hello.txt)"
-        required: true
-      content:
-        description: "New file content (UTF-8)"
-        required: true
-      pr_title:
-        description: "Pull request title"
-        required: true
-      pr_body:
-        description: "Pull request body"
-        require: true
+name: sanity
+on: workflow_dispatch
+jobs:
+  ok:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "sanity-ok"
