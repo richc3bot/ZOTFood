@@ -1,7 +1,78 @@
-name: sanity
-on: workflow_dispatch
+name: bot-pr
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to create or update"
+        required: true
+      commit_message:
+        description: "Commit message"
+        required: true
+      file_path:
+        description: "Path to modify (e.g., docs/hello.txt)"
+        required: true
+      content:
+        description: "New file content (UTF-8)"
+        required: true
+      pr_title:
+        description: "Pull request title"
+        required: true
+      pr_body:
+        description: "Pull request body"
+        required: false
+        default: ""
+
 jobs:
-  ok:
+  pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - run: echo "sanity-ok"
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "repo-bot"
+          git config user.email "bot@example.com"
+
+      - name: Create or update file
+        id: update
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${{ github.event.inputs.branch }}"
+          FILE="${{ github.event.inputs.file_path }}"
+          CONTENT="${{ github.event.inputs.content }}"
+
+          git checkout -B "$BRANCH"
+          mkdir -p "$(dirname "$FILE")"
+          printf "%s" "$CONTENT" > "$FILE"
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected; nothing to commit."
+          else
+            git add "$FILE"
+            git commit -m "${{ github.event.inputs.commit_message }}"
+            git push -u origin "$BRANCH" --force
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update PR
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          branch: ${{ github.event.inputs.branch }}
+          title: ${{ github.event.inputs.pr_title }}
+          body: ${{ github.event.inputs.pr_body }}
+          base: main
+
+      - name: Done (no-op)
+        if: steps.update.outputs.changed != 'true'
+        run: echo "Workflow finished: no changes to commit."
